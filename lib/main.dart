@@ -1,9 +1,10 @@
+import 'package:dotnet/screens/menu_screen.dart';
+import 'package:dotnet/screens/products_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'bloc/navigator/navigator_bloc.dart';
-import 'product_category/product_category_add_screen.dart';
-import 'product_category/product_category_screen.dart';
+import 'screens/products_add_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,10 +38,13 @@ class MyApp extends StatelessWidget {
           builder: (context, state) {
 
             if (state is MainState) {
-              return ProductCategoryScreen();
+              return MenuScreen();
+            }
+            if(state is ProductsState){
+              return ProductsScreen();
             }
             if (state is EditProductCategoryState) {
-              return ProductCategoryEdit();
+              return ProductEdit(productId: state.productoId);
             }
 
             return Scaffold(

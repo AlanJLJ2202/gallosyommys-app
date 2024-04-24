@@ -7,4 +7,13 @@ class NavigatorInitial extends NavigatorxState {}
 
 class MainState extends NavigatorxState {}
 
-class EditProductCategoryState extends NavigatorxState {}
+class ProductsState extends NavigatorxState {}
+
+class TransactionsState extends NavigatorxState {}
+
+class ListsState extends NavigatorxState {}
+
+class EditProductCategoryState extends NavigatorxState {
+  final int? productoId;
+  EditProductCategoryState({this.productoId});
+}

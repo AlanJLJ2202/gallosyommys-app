@@ -12,8 +12,17 @@ class NavigatorBloc extends Bloc<NavigatorEvent, NavigatorxState> {
       if (event is GoMain) {
         emit(MainState());
       }
-      if (event is GoEditProductCategory) {
-        emit(EditProductCategoryState());
+      if (event is GoProducts) {
+        emit(ProductsState());
+      }
+      if (event is GoTransactions) {
+        emit(TransactionsState());
+      }
+      if (event is GoLists) {
+        emit(ListsState());
+      }
+      if (event is GoEditProduct) {
+        emit(EditProductCategoryState(productoId: event.productoId));
       }
     });
   }
