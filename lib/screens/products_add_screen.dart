@@ -6,13 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:io' as io;
 
-import '../models/productCategory.dart';
+import '../models/product.dart';
 
 
 class ProductEdit extends StatefulWidget {
 
+  final int user_id;
   final int? productId;
-  ProductEdit({this.productId});
+  ProductEdit({
+    required this.user_id,
+    this.productId
+  });
 
   @override
   State<ProductEdit> createState() => _ProductCategoryEditState();
@@ -28,6 +32,7 @@ class _ProductCategoryEditState extends State<ProductEdit> {
 
   TextEditingController txtCategoryName = TextEditingController();
   TextEditingController txtDescription = TextEditingController();
+  TextEditingController txtPrecioCompra = TextEditingController();
 
   bool isLoading = false;
 
@@ -36,14 +41,13 @@ class _ProductCategoryEditState extends State<ProductEdit> {
     // TODO: implement initState
     super.initState();
     if(widget.productId != null){
+      isLoading = true;
       getProductById(widget.productId!).then((value) {
-
-        print('VALUE');
-        print(value);
-
         setState(() {
           txtCategoryName.text = value.name;
           txtDescription.text = value.description;
+          txtPrecioCompra.text = value.precio_compra.toString();
+          isLoading = false;
         });
       });
     }
@@ -66,7 +70,7 @@ class _ProductCategoryEditState extends State<ProductEdit> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     ElevatedButton(onPressed: (){
-                      BlocProvider.of<NavigatorBloc>(context).add(GoProducts());
+                      BlocProvider.of<NavigatorBloc>(context).add(GoProducts(user_id: widget.user_id));
                     }, child: Text('Regresar')),
                   ],
                 ),
@@ -98,6 +102,16 @@ class _ProductCategoryEditState extends State<ProductEdit> {
                       controller: txtDescription,
                     ),
                     SizedBox(height: 20),
+                    TextField(
+                      decoration: InputDecoration(
+                          hintText: 'Precio de compra',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)
+                          )
+                      ),
+                      controller: txtPrecioCompra,
+                      keyboardType: TextInputType.number,
+                    ),
 
                     Container(
                       width: double.infinity,
@@ -108,9 +122,9 @@ class _ProductCategoryEditState extends State<ProductEdit> {
                             });
 
                             if(widget.productId != null){
-                              updateProductCategory(txtCategoryName.text, txtDescription.text);
+                              updateProductCategory(txtCategoryName.text, txtDescription.text, double.parse(txtPrecioCompra.text));
                             } else {
-                              saveProductCategory(txtCategoryName.text, txtDescription.text);
+                              saveProductCategory(txtCategoryName.text, txtDescription.text, double.parse(txtPrecioCompra.text));
                             }
                           },
                           child: Text('Guardar')
@@ -146,7 +160,7 @@ class _ProductCategoryEditState extends State<ProductEdit> {
       print('RESPONSE');
       print(response.data);
 
-      ProductCategory productCategory = ProductCategory.fromJson(response.data['data']);
+      Product productCategory = Product.fromJson(response.data['data']);
 
       return productCategory;
 
@@ -157,7 +171,7 @@ class _ProductCategoryEditState extends State<ProductEdit> {
     }
   }
 
-  Future saveProductCategory(String categoryName, String description) async {
+  Future saveProductCategory(String categoryName, String description, double precio_compra) async {
     try {
 
 
@@ -166,8 +180,10 @@ class _ProductCategoryEditState extends State<ProductEdit> {
       Response response = await _dio.post("/Products",
           data: {
             "id": 0,
+            "user_id": 1,
             "name": categoryName,
-            "description": description
+            "description": description,
+            'precio_compra': precio_compra,
           },
           options: Options(
               headers: {
@@ -185,7 +201,7 @@ class _ProductCategoryEditState extends State<ProductEdit> {
       if(response.data['errors'] == [] || response.data['errors'] == null || response.data['errors'].length == 0){
         print('NO HAY ERRORES');
         isLoading = false;
-        BlocProvider.of<NavigatorBloc>(context).add(GoProducts());
+        BlocProvider.of<NavigatorBloc>(context).add(GoProducts(user_id: widget.user_id));
         return;
       }
 
@@ -197,7 +213,7 @@ class _ProductCategoryEditState extends State<ProductEdit> {
   }
 
 
-  Future updateProductCategory(String categoryName, String description) async {
+  Future updateProductCategory(String categoryName, String description, double precio_compra) async {
     try {
 
       print('UPDATE PRODUCT CATEGORY');
@@ -205,8 +221,10 @@ class _ProductCategoryEditState extends State<ProductEdit> {
       Response response = await _dio.put("/Products",
           data: {
             "id": widget.productId,
+            "user_id": 1, //TODO: Cambiar por el usuario logueado "user_id": "1
             "name": categoryName,
-            "description": description
+            "description": description,
+            'precio_compra': precio_compra,
           },
           options: Options(
               headers: {
@@ -216,16 +234,15 @@ class _ProductCategoryEditState extends State<ProductEdit> {
           )
       );
 
-      //List<ProductCategory> productCategories = (response.data['data'] as List).map((e) => ProductCategory.fromJson(e)).toList();
-
-      print('RESPONSE');
-      print(response.data);
-
       if(response.data['errors'] == [] || response.data['errors'] == null || response.data['errors'].length == 0){
         print('NO HAY ERRORES');
         isLoading = false;
-        BlocProvider.of<NavigatorBloc>(context).add(GoProducts());
+        BlocProvider.of<NavigatorBloc>(context).add(GoProducts(user_id: widget.user_id));
         return;
+      }else{
+        print('HA OCURRIDO UN ERROR');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ha ocurrido un error')));
+        isLoading = false;
       }
 
     } catch (e) {

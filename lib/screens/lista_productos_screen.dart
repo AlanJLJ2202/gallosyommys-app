@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dotnet/bloc/navigator/navigator_bloc.dart';
+import 'package:dotnet/models/lista_compra.dart';
 import 'package:dotnet/models/product.dart';
 import 'package:dotnet/utils/configuracion.dart';
 import 'package:flutter/cupertino.dart';
@@ -7,23 +8,32 @@ import 'package:flutter/material.dart';
 import 'dart:io' as io;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+
+import '../models/lista_producto.dart';
 
 
-class ProductsScreen extends StatefulWidget {
-
+class ListaProductosScreen extends StatefulWidget {
   final int user_id;
-  ProductsScreen({required this.user_id});
+  final int listaId;
+  final String nombre;
+
+  ListaProductosScreen({
+    required this.user_id,
+    required this.listaId,
+    required this.nombre
+  });
 
   @override
-  State<ProductsScreen> createState() => _ProductsScreenState();
+  State<ListaProductosScreen> createState() => _ListasProductosState();
 }
 
-class _ProductsScreenState extends State<ProductsScreen> {
+class _ListasProductosState extends State<ListaProductosScreen> {
   final Dio _dio = Dio();
 
-  List<Product> productCategories = [];
+  List<ListaProducto> listas_productos = [];
 
-  _ProductsScreenState() {
+  _ListasProductosState() {
     _dio.options.baseUrl = Configuracion.API_URL;
   }
 
@@ -34,9 +44,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     // TODO: implement initState
     super.initState();
     isLoading = true;
-    getProductCategories().then((value) {
+    getListasProductos().then((value) {
       setState(() {
-        productCategories = value;
+        listas_productos = value;
         isLoading = false;
       });
     });
@@ -47,12 +57,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
     // TODO: implement build
     return WillPopScope(
       onWillPop: () async {
-        //BlocProvider.of<NavigatorBloc>(context).add(GoHome());
+        BlocProvider.of<NavigatorBloc>(context).add(GoListas(user_id: widget.user_id));
         return false;
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Productos'),
+          title: Text(widget.nombre),
           backgroundColor: Color(0xFFF01815),
         ),
         body: ListView(
@@ -67,7 +77,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       margin: EdgeInsets.only(left: 15, top: 10),
                       child: ElevatedButton(
                           onPressed: (){
-                            BlocProvider.of<NavigatorBloc>(context).add(GoMain(user_id: widget.user_id));
+                            BlocProvider.of<NavigatorBloc>(context).add(GoListas(user_id: widget.user_id));
                           },
                           child: Text('< Regresar')
                       ),
@@ -77,17 +87,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       margin: EdgeInsets.only(right: 15, top: 10),
                       child: ElevatedButton(
                           onPressed: (){
-                            BlocProvider.of<NavigatorBloc>(context).add(GoEditProduct(productoId: null, user_id: widget.user_id));
+                            BlocProvider.of<NavigatorBloc>(context).add(GoEditListaProductos(listaId: widget.listaId, listaNombre: widget.nombre, listaProductoId: null, user_id: widget.user_id));
                           },
-                          child: Text('Agregar +')
+                          child: Text('Agregar producto +')
                       ),
                     ),
                   ],
                 ),
                 !isLoading ? Column(
-                  children: List.generate(productCategories.length, (index) {
-                    return productCategoryItem(productCategories[index]);
-                  })
+                    children: List.generate(listas_productos.length, (index) {
+                      return listaItem(listas_productos[index]);
+                    })
                 ) : Center(
                   child: CircularProgressIndicator(),
                 )
@@ -99,13 +109,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  Widget productCategoryItem(Product productCategory){
+  Widget listaItem(ListaProducto listaProducto){
+
     return Dismissible(
-      key: Key(productCategory.id.toString()),
+      key: Key(listaProducto.id.toString()),
       onDismissed: (direction) {
         setState(() {
-          productCategories.remove(productCategory);
-          deleteProductCategory(productCategory.id).then((value) {
+          listas_productos.remove(listaProducto);
+          deleteProductCategory(listaProducto.id).then((value) {
             if (value['data'] == 'true' || value['data'] == true) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Producto eliminado'), backgroundColor: Colors.green, duration: Duration(seconds: 2)));
             } else {
@@ -139,7 +150,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   Container(
                     width: double.infinity,
                     child: Text(
-                      productCategory.name,
+                      listaProducto.producto_nombre,
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold
@@ -148,30 +159,38 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ),
                   Container(
                     child: Text(
-                      productCategory.description,
+                      'Cantidad: ${listaProducto.cantidad}',
                       style: TextStyle(
-                          fontSize: 20,
+                        fontSize: 20,
                       ),
                     ),
                   ),
-                  SizedBox(height: 10),
+
                   Container(
                     child: Text(
-                      'Precio de compra: \$${productCategory.precio_compra}',
+                      'Precio: \$${listaProducto.precio_compra}',
                       style: TextStyle(
-                          fontSize: 20,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    child: Text(
+                      'Total: \$${listaProducto.cantidad * listaProducto.precio_compra}',
+                      style: TextStyle(
+                        fontSize: 20,
                       ),
                     ),
                   ),
                 ],
               ),
+              SizedBox(height: 10),
               Row(
                 children: [
                   ElevatedButton(onPressed: (){
-                    BlocProvider.of<NavigatorBloc>(context).add(GoEditProduct(productoId: productCategory.id, user_id: widget.user_id));
+                    BlocProvider.of<NavigatorBloc>(context).add(GoEditListaProductos(listaId: widget.listaId, listaNombre: widget.nombre, listaProductoId: null, user_id: widget.user_id));
                   }, child: Text('Editar')),
-                  //SizedBox(width: 10),
-                  //ElevatedButton(onPressed: (){}, child: Text('Eliminar'))
+
                 ],
               )
             ],
@@ -180,11 +199,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  Future<List<Product>> getProductCategories() async {
+  Future<List<ListaProducto>> getListasProductos() async {
+
     try {
-      Response response = await _dio.get("/products",
+
+      Response response = await _dio.get("/ListaProductos",
           queryParameters: {
-            "user_id": widget.user_id
+            "lista_id": widget.listaId
           },
           options: Options(
               headers: {
@@ -194,14 +215,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
               responseType: ResponseType.json
           )
       );
+
+      print('RESPONSE');
       print(response.data);
 
-      List<Product> productCategories = (response.data['data'] as List).map((e) => Product.fromJson(e)).toList();
+      List<ListaProducto> listaProducto = (response.data['data'] as List).map((e) => ListaProducto.fromJson(e)).toList();
 
-      return productCategories;
+      return listaProducto;
 
     } catch (e) {
 
+      print('ERROR');
       print(e);
 
       return [];

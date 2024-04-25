@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dotnet/bloc/navigator/navigator_bloc.dart';
+import 'package:dotnet/models/categoria.dart';
 import 'package:dotnet/models/product.dart';
 import 'package:dotnet/utils/configuracion.dart';
 import 'package:flutter/cupertino.dart';
@@ -9,21 +10,21 @@ import 'dart:io' as io;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 
-class ProductsScreen extends StatefulWidget {
+class CategoriasScreen extends StatefulWidget {
 
   final int user_id;
-  ProductsScreen({required this.user_id});
+  CategoriasScreen({required this.user_id});
 
   @override
-  State<ProductsScreen> createState() => _ProductsScreenState();
+  State<CategoriasScreen> createState() => _CategoriasScreenState();
 }
 
-class _ProductsScreenState extends State<ProductsScreen> {
+class _CategoriasScreenState extends State<CategoriasScreen> {
   final Dio _dio = Dio();
 
-  List<Product> productCategories = [];
+  List<Categoria> categorias = [];
 
-  _ProductsScreenState() {
+  _CategoriasScreenState() {
     _dio.options.baseUrl = Configuracion.API_URL;
   }
 
@@ -34,9 +35,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     // TODO: implement initState
     super.initState();
     isLoading = true;
-    getProductCategories().then((value) {
+    getCategorias().then((value) {
       setState(() {
-        productCategories = value;
+        categorias = value;
         isLoading = false;
       });
     });
@@ -47,12 +48,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
     // TODO: implement build
     return WillPopScope(
       onWillPop: () async {
-        //BlocProvider.of<NavigatorBloc>(context).add(GoHome());
+        BlocProvider.of<NavigatorBloc>(context).add(GoMain(user_id: widget.user_id));
         return false;
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Productos'),
+          title: Text('Categorias'),
           backgroundColor: Color(0xFFF01815),
         ),
         body: ListView(
@@ -77,7 +78,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       margin: EdgeInsets.only(right: 15, top: 10),
                       child: ElevatedButton(
                           onPressed: (){
-                            BlocProvider.of<NavigatorBloc>(context).add(GoEditProduct(productoId: null, user_id: widget.user_id));
+                            BlocProvider.of<NavigatorBloc>(context).add(GoEditCategoria(categoriaId: null, user_id: widget.user_id));
                           },
                           child: Text('Agregar +')
                       ),
@@ -85,9 +86,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ],
                 ),
                 !isLoading ? Column(
-                  children: List.generate(productCategories.length, (index) {
-                    return productCategoryItem(productCategories[index]);
-                  })
+                    children: List.generate(categorias.length, (index) {
+                      return CategoriaItem(categorias[index]);
+                    })
                 ) : Center(
                   child: CircularProgressIndicator(),
                 )
@@ -99,17 +100,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  Widget productCategoryItem(Product productCategory){
+  Widget CategoriaItem(Categoria categoria){
     return Dismissible(
-      key: Key(productCategory.id.toString()),
+      key: Key(categoria.id.toString()),
       onDismissed: (direction) {
         setState(() {
-          productCategories.remove(productCategory);
-          deleteProductCategory(productCategory.id).then((value) {
+          categorias.remove(categoria);
+          deleteCategoria(categoria.id).then((value) {
             if (value['data'] == 'true' || value['data'] == true) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Producto eliminado'), backgroundColor: Colors.green, duration: Duration(seconds: 2)));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Categoria eliminada'), backgroundColor: Colors.green, duration: Duration(seconds: 2)));
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al eliminar el producto'), backgroundColor: Colors.red, duration: Duration(seconds: 2)));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al eliminar la categoria'), backgroundColor: Colors.red, duration: Duration(seconds: 2)));
             }
           });
         });
@@ -139,27 +140,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   Container(
                     width: double.infinity,
                     child: Text(
-                      productCategory.name,
+                      categoria.nombre,
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold
-                      ),
-                    ),
-                  ),
-                  Container(
-                    child: Text(
-                      productCategory.description,
-                      style: TextStyle(
-                          fontSize: 20,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    child: Text(
-                      'Precio de compra: \$${productCategory.precio_compra}',
-                      style: TextStyle(
-                          fontSize: 20,
                       ),
                     ),
                   ),
@@ -168,7 +152,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
               Row(
                 children: [
                   ElevatedButton(onPressed: (){
-                    BlocProvider.of<NavigatorBloc>(context).add(GoEditProduct(productoId: productCategory.id, user_id: widget.user_id));
+                    BlocProvider.of<NavigatorBloc>(context).add(GoEditCategoria(categoriaId: categoria.id, user_id: widget.user_id));
                   }, child: Text('Editar')),
                   //SizedBox(width: 10),
                   //ElevatedButton(onPressed: (){}, child: Text('Eliminar'))
@@ -180,9 +164,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  Future<List<Product>> getProductCategories() async {
+  Future<List<Categoria>> getCategorias() async {
     try {
-      Response response = await _dio.get("/products",
+      Response response = await _dio.get("/Categorias",
           queryParameters: {
             "user_id": widget.user_id
           },
@@ -196,9 +180,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
       );
       print(response.data);
 
-      List<Product> productCategories = (response.data['data'] as List).map((e) => Product.fromJson(e)).toList();
+      List<Categoria> categorias = (response.data['data'] as List).map((e) => Categoria.fromJson(e)).toList();
 
-      return productCategories;
+      return categorias;
 
     } catch (e) {
 
@@ -210,11 +194,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
 
-  Future<Map> deleteProductCategory(int id) async {
+  Future<Map> deleteCategoria(int id) async {
     try {
       print('DELETE PRODUCT CATEGORY');
 
-      Response response = await _dio.delete("/Products",
+      Response response = await _dio.delete("/Categorias",
           queryParameters: {
             "id": id
           },
